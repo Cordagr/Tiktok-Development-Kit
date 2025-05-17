@@ -6,7 +6,6 @@ on:
       - main
   workflow_dispatch:
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -44,9 +43,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: java-app
+          path: ./artifact
 
-      - name: Extract jar from artifact
-        run: mv java-app/*.jar ./
+      - name: Move JAR to root
+        run: mv artifact/*.jar ./
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
