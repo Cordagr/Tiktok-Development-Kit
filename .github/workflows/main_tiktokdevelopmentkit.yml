@@ -51,5 +51,5 @@ jobs:
         with:
           app-name: 'TiktokDevelopmentKit'
           slot-name: 'Production'
-          package: 'build/libs/TiktokDevelopmentKit.jar'
+          package: 'build/libs/*.jar'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_ED82EF80CFA64FF2AD43872841C6C5DC }}
