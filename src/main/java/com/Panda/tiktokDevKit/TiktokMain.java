@@ -1,7 +1,11 @@
 package com.Panda.tiktokDevKit;
+
 import com.Panda.tiktokDevKit.api.AuthenticationService;
 import com.Panda.tiktokDevKit.exception.AuthenticationException;
 import io.github.cdimascio.dotenv.Dotenv;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class TiktokMain {
     public static void main(String[] args) {
@@ -10,50 +14,56 @@ public class TiktokMain {
         String clientSecret = dotenv.get("CLIENT_SECRET");
         String redirectUri = dotenv.get("REDIRECT_URI");
         
-        System.out.println("HERE");
-        // initialize the authentication service
         AuthenticationService authService = new AuthenticationService(clientKey, clientSecret, redirectUri);
         
         String[] scopes = {"user.info.basic", "video.list"};
-        
-        // state parameter for CSRF protection
-        String state = "random_state_string";
+        String state = "random_state_string_" + System.currentTimeMillis();
         
         try {
             String authUrl = authService.generateAuthorizationUrl(scopes, state);
-            System.out.println("Please open this URL in your browser to authorize the app:");
+            System.out.println("Authorization URL:");
             System.out.println(authUrl);
+            System.out.println("Enter the authorization code from the redirect URL:");
             
-       
+            String authCode;
+            if (args.length > 0) {
+                authCode = args[0];
+                System.out.println("Using authorization code from command line argument");
+            } else {
+                try {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+                    authCode = reader.readLine();
+                    if (authCode != null) {
+                        authCode = authCode.trim();
+                    }
+                } catch (IOException e) {
+                    System.err.println("Unable to read from console. Please pass the authorization code as a command line argument.");
+                    System.err.println("Usage: gradle run --args=\"YOUR_AUTHORIZATION_CODE\"");
+                    return;
+                }
+            }
             
-            System.out.println("\nAfter authorization, enter the code received:");
-            //TODO: get from your callback endpoint
-            String authCode = "AUTHORIZATION_CODE_FROM_REDIRECT";
+            if (authCode == null || authCode.isEmpty() || authCode.equals("AUTHORIZATION_CODE_FROM_REDIRECT")) {
+                System.err.println("Please provide a valid authorization code.");
+                System.err.println("Either run: gradle run --args=\"YOUR_AUTHORIZATION_CODE\"");
+                System.err.println("Or provide it when prompted.");
+                return;
+            }
             
-            //  exchange the code for tokens
             authService.exchangeCodeForToken(authCode);
             
-            // usable access token for API calls
             String accessToken = authService.getAccessToken();
             System.out.println("Access Token: " + accessToken);
             System.out.println("Refresh Token: " + authService.getRefreshToken());
             System.out.println("Expires In: " + authService.getExpiresIn() + " seconds");
             
-            // check if token is expired
             boolean isExpired = authService.isTokenExpired();
-            System.out.println("Is token expired? " + isExpired);
+            System.out.println("Is token expired: " + isExpired);
             
-            // if token is expired, you can refresh it
             if (isExpired) {
-                System.out.println("Refreshing token...");
                 authService.refreshAccessToken();
-                System.out.println("New Access Token: " + authService.getAccessToken());
+                System.out.println("Token refreshed. New Access Token: " + authService.getAccessToken());
             }
-            
-            // revoke the token
-            System.out.println("Revoking token...");
-            boolean revoked = authService.revokeAccessToken();
-            System.out.println("Token revoked: " + revoked);
             
         } catch (AuthenticationException e) {
             System.err.println("Authentication Error: " + e.getMessage());
