@@ -26,13 +26,21 @@ jobs:
         run: ./gradlew build
 
       - name: List JARs
-        run: ls -R build/libs
+        run: ls -la build/libs/
+
+      - name: Find main JAR
+        id: find-jar
+        run: |
+          # Find the main JAR (exclude plain and sources JARs)
+          MAIN_JAR=$(find build/libs -name "*.jar" ! -name "*-plain.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" | head -1)
+          echo "main-jar=$(basename $MAIN_JAR)" >> $GITHUB_OUTPUT
+          echo "Found main JAR: $MAIN_JAR"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: java-app
-          path: build/libs/*.jar
+          path: build/libs/${{ steps.find-jar.outputs.main-jar }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -43,10 +51,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: java-app
-          path: ./artifact
+          path: ./
 
-      - name: Move JAR to root
-        run: mv artifact/*.jar ./
+      - name: List downloaded files
+        run: ls -la
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
